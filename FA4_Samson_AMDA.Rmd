@@ -1,0 +1,169 @@
+---
+title: "FA 4 - Applied Multivariate Data Analysis"
+author: "Justine Aizel Samson"
+date: "2024-10-01"
+output: pdf_document
+---
+
+
+```{r pressure, echo=FALSE}
+
+
+#FA4_Samson_AMDA
+
+
+#FA4_Samson_AMDA
+
+# Load necessary packages
+library(tidyverse)
+library(car)  # For Anova
+library(ggplot2)
+library(ggpubr)
+library(rstatix)
+library(lsr)
+
+
+# Load the dataset (Assuming the dataset is called 'auto_pollution_filter_noise.csv')
+data <- read.csv("C:\\Users\\User\\OneDrive\\Personal docs\\FRESHMAN\\4th yr - 1st Sem\\Applied Multivariate Data Analysis\\Auto Pollution Filter Noise.csv")
+
+# Check the structure of the data
+str(data)
+
+#-------------------------------------------------------------------------------------------
+
+# 1. Assumptions for ANOVA
+
+# Convert variables to factors
+data$Size <- as.factor(data$Size)
+data$Type <- as.factor(data$Type)
+data$Side <- as.factor(data$Side)
+
+# Check for normality of residuals
+model <- aov(Noise ~ Size * Type * Side, data = data)
+residuals <- residuals(model)
+shapiro.test(residuals)
+
+```
+
+
+
+# Analysis: The normality of the residuals is examined using the `shapiro.test(residuals)`.
+# The result is less than 0.05, with a p-value of 0.03515, indicating that the assumption
+# of normality is violated, suggesting the residuals are not normally distributed.
+
+
+
+```{r homogeneity}
+
+
+plot(model, which = 2)  # Q-Q plot of residuals
+
+# Analysis: If the residuals do not follow a normal distribution, this can be verified using the Q-Q plot.
+# Most data points fall inside the theoretical range, so the residuals are roughly normally distributed.
+# Points 1 and 31 on the lower side and point 18 on the upper side deviate at the tails, suggesting potential outliers.
+
+# Check for homogeneity of variance
+leveneTest(Noise ~ Size * Type * Side, data = data)
+
+# Analysis: The Levene test for homogeneity of variance returns a p-value of 0.8322, which is higher than 0.05,
+# indicating that the assumption of homogeneity of variance is satisfied.
+
+# Check for independence (Durbin-Watson test for autocorrelation of residuals)
+durbinWatsonTest(model)
+
+# Analysis: The D-W Statistic is 2.412698, which is near 2, indicating no significant autocorrelation in the residuals.
+# The p-value is 0.494, which is much higher than 0.05, meaning the null hypothesis of no autocorrelation is not rejected.
+
+# Plot residuals vs fitted values to check for linearity
+plot(model, which = 1)
+
+# Analysis: Residuals vs fitted values plot shows a small curve, raising concerns about the linearity assumption.
+# This could indicate a slight problem with homoscedasticity and model fit, which may require further analysis.
+
+# Check for outliers
+plot(model, which = 4)  # Plot Cook's distance
+
+# Analysis: Cook's distance plot identifies observations 1, 18, and 31 with larger Cook's distances.
+# These points may be influencing the model more than others. It's essential to investigate these points for potential errors.
+
+# Sphericity:
+# Given that we are employing a between-subjects design, sphericity does not apply. This assumption is relevant for repeated measures ANOVA.
+
+#-------------------------------------------------------------------------------------------
+
+# 2. Three-Way ANOVA
+
+anova_result <- aov(Noise ~ Size * Type * Side, data = data)
+summary(anova_result)
+
+# Analysis: The summary of the three-way ANOVA provides insight into the significance of each factor and their interactions. 
+# From this analysis, the significance of main effects and interactions can be interpreted.
+
+# Check for three-way interaction
+interaction.plot(data$Size, data$Type, data$Noise, col=c("red","blue","green"), xlab="Vehicle Size", ylab="Noise Level", trace.label="Type")
+
+# Analysis: The interaction plot shows how the factors interact in predicting noise levels. Differences between vehicle sizes, types, and sides are visually represented.
+
+#-------------------------------------------------------------------------------------------
+
+# 3. Interaction Plots
+
+# Interaction plot for Size and Type
+interaction.plot(data$Size, data$Type, data$Noise, col=c("red","blue"), xlab="Vehicle Size", ylab="Noise Level", trace.label="Type")
+
+# Interaction plot for Size and Side
+interaction.plot(data$Size, data$Side, data$Noise, col=c("red","blue"), xlab="Vehicle Size", ylab="Noise Level", trace.label="Side")
+
+# Interaction plot for Type and Side
+interaction.plot(data$Type, data$Side, data$Noise, col=c("red","blue"), xlab="Type", ylab="Noise Level", trace.label="Side")
+
+# Analysis: Each interaction plot provides insight into how the factors interact to influence the noise levels. The visual representation allows easy identification of trends or patterns in the data across different groups.
+
+#-------------------------------------------------------------------------------------------
+
+# 4. Main Effects
+
+summary(anova_result)
+
+# Post-hoc test for vehicle size effect
+TukeyHSD(anova_result, "Size")
+
+# Post-hoc test for type effect
+TukeyHSD(anova_result, "Type")
+
+# Post-hoc test for side effect
+TukeyHSD(anova_result, "Side")
+
+# Analysis: Tukey’s HSD post-hoc tests further investigate the differences between groups, highlighting where significant differences lie between vehicle sizes, types, and sides.
+
+#-------------------------------------------------------------------------------------------
+
+# 5. Effect Size
+
+# Calculate effect size (eta squared)
+anova_table <- Anova(anova_result, type = "III")
+anova_table
+
+# Eta-squared calculation
+eta_squared <- etaSquared(anova_result)
+eta_squared
+
+# Analysis: Eta squared is used to calculate the effect size, providing an estimate of how much variance in noise levels is explained by the different factors.
+
+#-------------------------------------------------------------------------------------------
+
+# 6. Post-hoc Visualization
+
+# Perform pairwise comparisons using Tukey's HSD
+posthoc_size <- TukeyHSD(anova_result, "Size")
+posthoc_size
+
+# Visualize post-hoc results
+plot(posthoc_size)
+
+# Analysis: The post-hoc plots visualize the differences between group means, making it easier to identify where significant differences exist. This helps confirm the findings from the ANOVA tests.
+
+
+
+```
+
